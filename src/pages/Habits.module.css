@@ -39,3 +39,9 @@
 .streakNum { font-size: 22px; font-weight: 500; color: var(--accent); font-family: var(--mono); }
 .streakLabel { font-size: 11px; color: var(--text); }
 .streakSub { font-size: 10px; color: var(--text-3); }
+
+@media (max-width: 640px) {
+  .grid { grid-template-columns: 80px repeat(7, 1fr); }
+  .cell { height: 24px; }
+  .habitLabel { font-size: 11px; }
+}

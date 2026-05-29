@@ -32,21 +32,27 @@
   --radius:   7px;
   --radius-lg: 11px;
   --radius-xl: 15px;
+  --bottom-nav: 60px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
 }
 
 html, body, #root {
-  height: 100%; width: 100%;
+  height: 100%;
+  width: 100%;
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  font-size: 13px;
+  font-size: 14px;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
 }
 
-button { font-family: var(--font); cursor: pointer; border: none; background: none; }
+button { font-family: var(--font); cursor: pointer; border: none; background: none; -webkit-tap-highlight-color: transparent; }
 input, textarea, select { font-family: var(--font); }
 * { -webkit-tap-highlight-color: transparent; }
+a { -webkit-tap-highlight-color: transparent; }
 
 ::-webkit-scrollbar { width: 3px; height: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -57,10 +63,6 @@ input, textarea, select { font-family: var(--font); }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
 }
 @keyframes blink {
   0%,80%,100% { opacity: 0.15; }
@@ -74,4 +76,3 @@ input, textarea, select { font-family: var(--font); }
 .fu4 { animation: fadeUp 0.22s 0.16s ease both; }
 .fu5 { animation: fadeUp 0.22s 0.20s ease both; }
 .fu6 { animation: fadeUp 0.22s 0.24s ease both; }
-.fu7 { animation: fadeUp 0.22s 0.28s ease both; }

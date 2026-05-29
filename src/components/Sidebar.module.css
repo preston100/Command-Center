@@ -1,3 +1,4 @@
+/* ---- DESKTOP SIDEBAR ---- */
 .sidebar {
   width: var(--sidebar);
   height: 100%;
@@ -20,7 +21,6 @@
   display: flex; align-items: center; justify-content: center;
   font-weight: 500; font-size: 13px;
   margin-bottom: 10px; flex-shrink: 0;
-  letter-spacing: -0.02em;
 }
 
 .group { display: flex; flex-direction: column; gap: 1px; width: 100%; align-items: center; }
@@ -28,48 +28,70 @@
 .spacer { flex: 1; }
 
 .btn {
-  width: 34px; height: 34px;
+  width: 36px; height: 36px;
   border-radius: var(--radius);
   color: var(--text-3);
   display: flex; align-items: center; justify-content: center;
   transition: background 0.12s, color 0.12s;
-  position: relative;
-  font-size: 16px;
+  position: relative; font-size: 16px;
 }
 .btn:hover { background: var(--bg-4); color: var(--text-2); }
 .btn.active { background: var(--accent-2); color: var(--accent); }
 
 .tooltip {
-  position: absolute;
-  left: calc(100% + 10px);
-  background: var(--bg-5);
-  border: 1px solid var(--border-2);
-  border-radius: var(--radius);
-  padding: 4px 8px;
-  font-size: 11px;
-  color: var(--text);
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transform: translateX(-4px);
-  transition: opacity 0.15s, transform 0.15s;
-  z-index: 100;
+  position: absolute; left: calc(100% + 10px);
+  background: var(--bg-5); border: 1px solid var(--border-2);
+  border-radius: var(--radius); padding: 4px 8px;
+  font-size: 11px; color: var(--text); white-space: nowrap;
+  pointer-events: none; opacity: 0; transform: translateX(-4px);
+  transition: opacity 0.15s, transform 0.15s; z-index: 100;
 }
 .btn:hover .tooltip { opacity: 1; transform: translateX(0); }
 
+/* ---- MOBILE BOTTOM NAV ---- */
+.mobileNav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: calc(var(--bottom-nav) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: var(--bg-2);
+  border-top: 1px solid var(--border);
+  z-index: 100;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.mobileBtn {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; color: var(--text-3); font-size: 18px;
+  min-height: 44px;
+  transition: color 0.12s;
+}
+.mobileBtn.mobileActive { color: var(--accent); }
+.mobileIcon { font-size: 18px; line-height: 1; }
+.mobileLabel { font-size: 10px; letter-spacing: 0.01em; }
+
+.moreWrap { flex: 1; position: relative; display: flex; }
+.moreMenu {
+  position: absolute; bottom: calc(100% + 8px); right: 0;
+  background: var(--bg-3); border: 1px solid var(--border-2);
+  border-radius: var(--radius-xl); padding: 8px;
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 140px; z-index: 200;
+  box-shadow: 0 -8px 24px rgba(0,0,0,0.4);
+}
+.moreItem {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; color: var(--text-2);
+  padding: 10px 12px; border-radius: var(--radius);
+  transition: background 0.12s;
+}
+.moreItem:hover { background: var(--bg-4); }
+.moreActive { color: var(--accent); background: var(--accent-2); }
+
 @media (max-width: 640px) {
-  .sidebar {
-    width: 100%; height: 60px;
-    flex-direction: row;
-    border-right: none; border-top: 1px solid var(--border);
-    padding: 0 8px;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    position: fixed; bottom: 0; left: 0; right: 0;
-    justify-content: space-around;
-  }
-  .logo { display: none; }
-  .divider { display: none; }
-  .spacer { display: none; }
-  .group { flex-direction: row; }
-  .tooltip { display: none; }
+  .sidebar { display: none; }
+  .mobileNav { display: flex; }
 }

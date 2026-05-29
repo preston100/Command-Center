@@ -17,3 +17,7 @@
 }
 .noteArea:focus { border-color: var(--border-2); }
 .noteArea::placeholder { color: var(--text-3); }
+
+@media (max-width: 640px) {
+  .noteArea { font-size: 16px; min-height: 200px; }
+}

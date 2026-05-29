@@ -23,5 +23,7 @@
 
 @media (max-width: 640px) {
   .app { flex-direction: column; }
-  .content { padding-bottom: 60px; }
+  .content {
+    padding-bottom: calc(var(--bottom-nav) + var(--safe-bottom));
+  }
 }

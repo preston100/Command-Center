@@ -44,3 +44,10 @@
 .sendBtn:disabled { opacity: 0.4; }
 .keyPrompt { background: none; border: 1px dashed var(--border-2); border-radius: var(--radius); color: var(--text-3); font-size: 12px; padding: 8px; width: 100%; flex-shrink: 0; }
 .keyPrompt:hover { color: var(--accent); border-color: var(--accent-3); }
+
+@media (max-width: 640px) {
+  .input { font-size: 16px; }
+  .bubble { max-width: 95%; font-size: 14px; }
+  .suggest { font-size: 13px; padding: 10px 12px; }
+  .briefingBody { font-size: 14px; }
+}

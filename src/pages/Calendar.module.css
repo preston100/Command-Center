@@ -58,3 +58,14 @@
   .week { grid-template-columns: repeat(7, 1fr); }
   .eventPill { display: none; }
 }
+
+@media (max-width: 640px) {
+  .week { grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .dayCol { padding: 4px 2px; }
+  .dayName { font-size: 9px; }
+  .dayNum { font-size: 11px; }
+  .eventPill { display: none; }
+  .addBox { padding: 12px; }
+  .field { font-size: 16px; } /* prevent zoom on iOS */
+  .weekLabel { font-size: 11px; }
+}

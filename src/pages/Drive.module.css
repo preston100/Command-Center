@@ -50,3 +50,11 @@
   .layout:has(.previewPanel) { grid-template-columns: 1fr; }
   .previewPanel { display: none; }
 }
+
+@media (max-width: 640px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .previewPanel { position: fixed; inset: 0; z-index: 50; border-radius: 0; }
+  .file { padding: 12px 14px; }
+  .fileName { font-size: 14px; }
+}

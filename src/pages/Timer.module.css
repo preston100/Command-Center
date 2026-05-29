@@ -34,3 +34,8 @@
 .btn.main:hover { background: var(--accent-3); }
 
 .tip { font-size: 12px; color: var(--text-3); }
+
+@media (max-width: 640px) {
+  .page { padding: 20px 16px; }
+  .clockFace { font-size: 48px; }
+}

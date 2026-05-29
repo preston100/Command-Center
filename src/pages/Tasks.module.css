@@ -32,3 +32,10 @@
 .del { background: none; border: none; color: var(--text-3); font-size: 16px; line-height: 1; padding: 0 2px; opacity: 0; transition: opacity 0.15s, color 0.15s; }
 .taskItem:hover .del { opacity: 1; }
 .del:hover { color: var(--red); }
+
+@media (max-width: 640px) {
+  .input { font-size: 16px; } /* prevent zoom on iOS */
+  .taskItem { padding: 12px 0; }
+  .taskText { font-size: 14px; }
+  .del { opacity: 1; } /* always show on mobile */
+}

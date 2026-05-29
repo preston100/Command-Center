@@ -90,3 +90,17 @@
   .colDivider { display: none; }
   .panel { margin: 4px 0; }
 }
+
+/* Mobile overrides */
+@media (max-width: 640px) {
+  .page { padding: 10px; gap: 8px; overflow-y: auto; height: auto; }
+  .grid { flex-direction: column; overflow: visible; height: auto; }
+  .col { width: 100% !important; flex-direction: column; overflow: visible; }
+  .colDivider { display: none; }
+  .rowDivider { display: none; }
+  .panel { flex: none !important; min-height: 80px; margin: 0 0 2px 0; }
+  .scrollPanel { max-height: 300px; }
+  .topRow { gap: 6px; }
+  .quickAdd { padding: 10px 12px; }
+  .qaInput { font-size: 16px; } /* prevent zoom on iOS */
+}
