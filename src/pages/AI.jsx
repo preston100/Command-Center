@@ -44,7 +44,7 @@ export default function AI() {
   }, [token])
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [messages, loading])
 
   const saveKey = () => {

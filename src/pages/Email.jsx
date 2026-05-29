@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useGoogle } from '../context/GoogleContext'
+import EmptyState from '../components/EmptyState'
 import styles from './Email.module.css'
 
 function getHeader(headers, name) {
@@ -126,7 +127,7 @@ export default function Email() {
 
         {!selected && token && (
           <div className={styles.placeholder}>
-            <span>Select an email to read it</span>
+            <EmptyState type="email" title="Select an email" subtitle="Tap any message to read it" />
           </div>
         )}
       </div>

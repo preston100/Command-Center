@@ -1,3 +1,4 @@
+import EmptyState from "../components/EmptyState"
 import { useState, useEffect } from 'react'
 import { useGoogle } from '../context/GoogleContext'
 import styles from './Calendar.module.css'
@@ -220,7 +221,7 @@ export default function Calendar() {
           {token && selectedEvents.length === 0 && !loading && (
             <p className={styles.empty}>No events — <button className={styles.addLink} onClick={() => { setNewEvent(p=>({...p,date:toLocalISODate(selected)})); setShowAdd(true) }}>Add one?</button></p>
           )}
-          {!token && <p className={styles.empty}>Connect Google to see and add events</p>}
+          {!token && <EmptyState type="calendar" title="No events" subtitle="Connect Google Calendar to see your schedule" action="Connect Google" onAction={login} />}
           {selectedEvents.map((e,i) => (
             <div key={e.id} className={styles.detailEvent}>
               <div className={`${styles.detailDot} ${styles[COLORS[i%COLORS.length]]}`} />

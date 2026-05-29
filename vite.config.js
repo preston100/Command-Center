@@ -12,15 +12,17 @@ export default defineConfig({
         name: 'Command Center',
         short_name: 'Command',
         description: 'Your personal all-in-one dashboard',
-        theme_color: '#0f0f0f',
-        background_color: '#0f0f0f',
+        theme_color: '#0a0a0a',
+        background_color: '#0a0a0a',
         display: 'standalone',
+        display_override: ['standalone', 'fullscreen'],
         orientation: 'portrait-primary',
         scope: '/',
         start_url: '/',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: 'apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
         ]
       },
       workbox: {
@@ -29,7 +31,12 @@ export default defineConfig({
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
-            options: { cacheName: 'google-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } }
+            options: { cacheName: 'google-fonts', expiration: { maxEntries: 10, maxAgeSeconds: 60*60*24*365 } }
+          },
+          {
+            urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'weather', expiration: { maxEntries: 5, maxAgeSeconds: 1800 } }
           }
         ]
       }

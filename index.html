@@ -2,20 +2,66 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f0f0f" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#0a0a0a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Command" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <title>Command Center</title>
+    <style>
+      /* Splash screen */
+      #splash {
+        position: fixed; inset: 0; z-index: 9999;
+        background: #0a0a0a;
+        display: flex; align-items: center; justify-content: center;
+        flex-direction: column; gap: 16px;
+        transition: opacity 0.4s ease;
+      }
+      #splash.hidden { opacity: 0; pointer-events: none; }
+      .splash-logo {
+        width: 72px; height: 72px;
+        background: linear-gradient(135deg, #1a1a1a, #111);
+        border-radius: 18px;
+        display: flex; align-items: center; justify-content: center;
+        font-family: -apple-system, sans-serif;
+        font-size: 36px; font-weight: 600;
+        color: #c9964a;
+        box-shadow: 0 0 40px rgba(201,150,74,0.2);
+        animation: pulse 1.5s ease infinite;
+      }
+      .splash-name {
+        font-family: -apple-system, sans-serif;
+        font-size: 14px; color: rgba(255,255,255,0.3);
+        letter-spacing: 0.1em; text-transform: uppercase;
+      }
+      @keyframes pulse {
+        0%, 100% { box-shadow: 0 0 20px rgba(201,150,74,0.15); }
+        50% { box-shadow: 0 0 50px rgba(201,150,74,0.35); }
+      }
+    </style>
   </head>
   <body>
+    <div id="splash">
+      <div class="splash-logo">C</div>
+      <div class="splash-name">Command Center</div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Hide splash once React has mounted
+      window.__hideSplash = function() {
+        const splash = document.getElementById('splash')
+        if (splash) {
+          splash.classList.add('hidden')
+          setTimeout(() => splash.remove(), 500)
+        }
+      }
+    </script>
   </body>
 </html>

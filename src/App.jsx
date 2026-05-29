@@ -2,6 +2,7 @@ import { AppProvider, useApp } from './context/AppContext'
 import { GoogleProvider } from './context/GoogleContext'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
+import OfflineBar from './components/OfflineBar'
 import Dashboard from './pages/Dashboard'
 import Tasks from './pages/Tasks'
 import Calendar from './pages/Calendar'
@@ -28,8 +29,11 @@ function AppInner() {
       <Sidebar />
       <div className={styles.main}>
         <Topbar />
-        <div className={styles.content} key={activeTab}>
-          <Page />
+        <OfflineBar />
+        <div className={styles.content}>
+          <div className={styles.page} key={activeTab}>
+            <Page />
+          </div>
         </div>
       </div>
     </div>

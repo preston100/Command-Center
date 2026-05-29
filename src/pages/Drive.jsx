@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useGoogle } from '../context/GoogleContext'
-import styles from './Drive.module.css'
+import EmptyState from "../components/EmptyState"
+import styles from "./Drive.module.css"
 
 const MIME_ICONS = {
   'application/vnd.google-apps.document': '📄',
@@ -177,7 +178,7 @@ export default function Drive() {
               <span>Modified</span>
             </div>
             {loading && <p className={styles.loading}>Loading…</p>}
-            {!loading && filtered.length === 0 && <p className={styles.empty}>No files</p>}
+            {!loading && filtered.length === 0 && <EmptyState type="drive" title="No files found" subtitle="Try a different folder or upload a file" />}
             {filtered.map(f => (
               <div key={f.id} className={`${styles.file} ${isFolder(f) ? styles.folderFile : ''}`}
                 onClick={() => handleFileClick(f)}>
