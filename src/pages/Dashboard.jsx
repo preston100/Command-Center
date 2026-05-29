@@ -7,11 +7,14 @@ const GEMINI_SYSTEM = `You are a personal assistant for Preston who teaches Engl
 const COLORS = ['blue','green','amber','purple']
 
 function QuickAdd() {
-  const { localTasks, setLocalTasks, setGoogleTasks, notes, setNotes } = useApp()
+  const { notes, setNotes } = useApp()
   const { token } = useGoogle()
   const [val, setVal] = useState('')
+  const [localTasks, setLocalTasks] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cc_local_tasks')) || [] } catch { return [] }
+  })
 
-  const handle = async () => {
+  const handle = () => {
     if (!val.trim()) return
     const v = val.trim()
     if (v.startsWith('note:') || v.startsWith('n:')) {
@@ -20,12 +23,9 @@ function QuickAdd() {
       const tag = v.includes('#lesson') ? 'lesson' : v.includes('#uni') ? 'uni' : v.includes('#dev') ? 'dev' : 'other'
       const text = v.replace(/#\w+/g, '').trim()
       const newTask = { id: Date.now().toString(), text, done: false, tag }
-      if (token) {
-        // Will be synced via Tasks page — add locally for now
-        setGoogleTasks(prev => [newTask, ...prev])
-      } else {
-        setLocalTasks(prev => [newTask, ...prev])
-      }
+      const updated = [newTask, ...localTasks]
+      setLocalTasks(updated)
+      localStorage.setItem('cc_local_tasks', JSON.stringify(updated))
     }
     setVal('')
   }
@@ -35,7 +35,7 @@ function QuickAdd() {
       <span className={styles.qaIcon}>+</span>
       <input className={styles.qaInput} value={val} onChange={e => setVal(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && handle()}
-        placeholder="Add task… or note: to save a note  (#lesson #uni #dev)" />
+        placeholder="Add task… or note: for a note  (#lesson #uni #dev)" />
       {val && <button className={styles.qaBtn} onClick={handle}>↵</button>}
     </div>
   )
@@ -45,27 +45,20 @@ function MiniAI() {
   const [input, setInput] = useState('')
   const [reply, setReply] = useState('')
   const [loading, setLoading] = useState(false)
-
   const ask = async () => {
     const key = localStorage.getItem('cc_gemini_key')
-    if (!input.trim()) return
-    if (!key) { setReply('Add your Gemini key in the AI tab first.'); return }
+    if (!input.trim() || !key) { if (!input.trim()) return; setReply('Add your Gemini key in the AI tab.'); return }
     setLoading(true); setReply('')
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: GEMINI_SYSTEM }] },
-          contents: [{ role: 'user', parts: [{ text: input }] }],
-          generationConfig: { maxOutputTokens: 300 }
-        })
+        body: JSON.stringify({ system_instruction: { parts: [{ text: GEMINI_SYSTEM }] }, contents: [{ role: 'user', parts: [{ text: input }] }], generationConfig: { maxOutputTokens: 300 } })
       })
       const data = await res.json()
       setReply(data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response.')
     } catch { setReply('Error — check AI tab.') }
     setLoading(false); setInput('')
   }
-
   return (
     <div className={styles.miniAI}>
       {(reply || loading) && <div className={styles.aiReply}>{loading ? 'Thinking…' : reply}</div>}
@@ -78,20 +71,35 @@ function MiniAI() {
   )
 }
 
+// Vertical resize handle between columns
+function ColDivider({ onMouseDown }) {
+  return <div className={styles.colDivider} onMouseDown={onMouseDown} />
+}
+
+// Horizontal resize handle between rows in a column
+function RowDivider({ onMouseDown }) {
+  return <div className={styles.rowDivider} onMouseDown={onMouseDown} />
+}
+
 const PANEL_DEFS = [
-  { id: 'tasks',  label: 'Tasks',       col: 0 },
-  { id: 'today',  label: 'Today',       col: 1 },
-  { id: 'habits', label: 'Habits',      col: 1 },
-  { id: 'notes',  label: 'Quick Note',  col: 1 },
-  { id: 'email',  label: 'Inbox',       col: 2 },
-  { id: 'ai',     label: 'AI',          col: 2 },
+  { id: 'tasks',  label: 'Tasks',      col: 0 },
+  { id: 'today',  label: 'Today',      col: 1, row: 0 },
+  { id: 'habits', label: 'Habits',     col: 1, row: 1 },
+  { id: 'notes',  label: 'Note',       col: 1, row: 2 },
+  { id: 'email',  label: 'Inbox',      col: 2, row: 0 },
+  { id: 'ai',     label: 'AI',         col: 2, row: 1 },
 ]
 
 export default function Dashboard() {
-  const { tasks, notes, setNotes, habits, todayHabits, toggleHabit, setActiveTab } = useApp()
+  const { notes, setNotes, habits, todayHabits, toggleHabit, setActiveTab } = useApp()
   const { token, gFetch, login } = useGoogle()
   const [calEvents, setCalEvents] = useState([])
   const [emails, setEmails] = useState([])
+  const [localTasks, setLocalTasks] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cc_local_tasks')) || [] } catch { return [] }
+  })
+  const [googleTasks, setGoogleTasks] = useState([])
+
   const [showCustomize, setShowCustomize] = useState(false)
   const [hiddenPanels, setHiddenPanels] = useState(() => {
     try { return JSON.parse(localStorage.getItem('cc_hidden')) || [] } catch { return [] }
@@ -99,22 +107,35 @@ export default function Dashboard() {
   const [colWidths, setColWidths] = useState(() => {
     try { return JSON.parse(localStorage.getItem('cc_colw')) || [33, 34, 33] } catch { return [33, 34, 33] }
   })
+  // Row heights per column (as flex values)
+  const [rowHeights, setRowHeights] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cc_rowh')) || { 1: [30, 20, 50], 2: [50, 50] } } catch { return { 1: [30, 20, 50], 2: [50, 50] } }
+  })
+
   const gridRef = useRef()
-  const dragging = useRef(null)
+  const colDrag = useRef(null)
+  const rowDrag = useRef(null)
 
   useEffect(() => { localStorage.setItem('cc_hidden', JSON.stringify(hiddenPanels)) }, [hiddenPanels])
   useEffect(() => { localStorage.setItem('cc_colw', JSON.stringify(colWidths)) }, [colWidths])
+  useEffect(() => { localStorage.setItem('cc_rowh', JSON.stringify(rowHeights)) }, [rowHeights])
 
+  // Sync local tasks with storage
+  useEffect(() => {
+    const handler = () => {
+      try { setLocalTasks(JSON.parse(localStorage.getItem('cc_local_tasks')) || []) } catch {}
+    }
+    window.addEventListener('storage', handler)
+    return () => window.removeEventListener('storage', handler)
+  }, [])
+
+  // Load Google data
   useEffect(() => {
     if (!token) return
     const start = new Date(); start.setHours(0,0,0,0)
     const end = new Date(); end.setHours(23,59,59,999)
     gFetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${start.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=8`)
-      .then(d => setCalEvents(d?.items || []))
-  }, [token])
-
-  useEffect(() => {
-    if (!token) return
+      .then(d => setCalEvents(d?.items || [])).catch(() => {})
     gFetch('https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=5&labelIds=INBOX')
       .then(async data => {
         if (!data?.threads) return
@@ -133,34 +154,64 @@ export default function Dashboard() {
           const time = isToday ? date.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : date.toLocaleDateString('en-GB',{day:'numeric',month:'short'})
           return { id: t.id, from, subject, time, unread }
         }))
-      })
+      }).catch(() => {})
+    // Load google tasks for dashboard
+    gFetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists')
+      .then(async lists => {
+        const list = lists?.items?.[0]
+        if (!list) return
+        const data = await gFetch(`https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?maxResults=20`)
+        setGoogleTasks((data?.items || []).filter(t => t.title && t.status !== 'completed').map(t => ({
+          id: t.id, text: t.title, done: false, tag: t.notes?.match(/#(\w+)/)?.[1] || 'other'
+        })))
+      }).catch(() => {})
   }, [token])
 
   // Column resize
-  const startDrag = useCallback((idx, e) => {
+  const startColDrag = useCallback((idx, e) => {
     e.preventDefault()
-    dragging.current = { idx, startX: e.clientX, startWidths: [...colWidths] }
+    colDrag.current = { idx, startX: e.clientX, startWidths: [...colWidths] }
     document.body.style.cursor = 'col-resize'
     document.body.style.userSelect = 'none'
   }, [colWidths])
 
+  // Row resize
+  const startRowDrag = useCallback((col, rowIdx, e) => {
+    e.preventDefault()
+    const heights = rowHeights[col] || [50, 50]
+    rowDrag.current = { col, rowIdx, startY: e.clientY, startHeights: [...heights] }
+    document.body.style.cursor = 'row-resize'
+    document.body.style.userSelect = 'none'
+  }, [rowHeights])
+
   useEffect(() => {
     const onMove = (e) => {
-      if (!dragging.current || !gridRef.current) return
-      const { idx, startX, startWidths } = dragging.current
-      const totalW = gridRef.current.offsetWidth
-      const deltaPct = ((e.clientX - startX) / totalW) * 100
-      setColWidths(prev => {
-        const next = [...prev]
-        next[idx] = Math.max(15, startWidths[idx] + deltaPct)
-        next[idx+1] = Math.max(15, startWidths[idx+1] - deltaPct)
-        // normalize to 100
-        const sum = next.reduce((a,b) => a+b, 0)
-        return next.map(w => (w/sum)*100)
-      })
+      if (colDrag.current && gridRef.current) {
+        const { idx, startX, startWidths } = colDrag.current
+        const totalW = gridRef.current.offsetWidth
+        const deltaPct = ((e.clientX - startX) / totalW) * 100
+        setColWidths(prev => {
+          const next = [...prev]
+          next[idx] = Math.max(15, startWidths[idx] + deltaPct)
+          next[idx+1] = Math.max(15, startWidths[idx+1] - deltaPct)
+          const sum = next.reduce((a,b) => a+b, 0)
+          return next.map(w => (w/sum)*100)
+        })
+      }
+      if (rowDrag.current) {
+        const { col, rowIdx, startY, startHeights } = rowDrag.current
+        const deltaY = e.clientY - startY
+        setRowHeights(prev => {
+          const heights = [...(prev[col] || startHeights)]
+          heights[rowIdx] = Math.max(10, startHeights[rowIdx] + deltaY * 0.1)
+          heights[rowIdx+1] = Math.max(10, startHeights[rowIdx+1] - deltaY * 0.1)
+          return { ...prev, [col]: heights }
+        })
+      }
     }
     const onUp = () => {
-      dragging.current = null
+      colDrag.current = null
+      rowDrag.current = null
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
     }
@@ -169,7 +220,9 @@ export default function Dashboard() {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
   }, [])
 
+  const tasks = token && googleTasks.length > 0 ? googleTasks : localTasks
   const incomplete = tasks.filter(t => !t.done)
+
   const SAMPLE_EVENTS = [
     { id:'s1', time:'09:00', label:'Kids English — Group B', color:'blue' },
     { id:'s2', time:'11:30', label:'Business Admin lecture', color:'amber' },
@@ -184,6 +237,8 @@ export default function Dashboard() {
 
   const displayEvents = token ? calEvents : SAMPLE_EVENTS
   const displayEmails = token ? emails : SAMPLE_EMAILS
+  const rh1 = rowHeights[1] || [30, 20, 50]
+  const rh2 = rowHeights[2] || [50, 50]
 
   return (
     <div className={styles.page}>
@@ -196,19 +251,19 @@ export default function Dashboard() {
 
       {showCustomize && (
         <div className={styles.customizeBar}>
-          <span className={styles.customizeLabel}>Panels:</span>
+          <span className={styles.customizeLabel}>Toggle panels:</span>
           {PANEL_DEFS.map(p => (
             <button key={p.id}
               className={`${styles.pill} ${hiddenPanels.includes(p.id) ? styles.pillOff : styles.pillOn}`}
               onClick={() => setHiddenPanels(prev => prev.includes(p.id) ? prev.filter(x=>x!==p.id) : [...prev, p.id])}
             >{p.label}</button>
           ))}
-          <button className={styles.resetBtn} onClick={() => { setColWidths([33,34,33]); setHiddenPanels([]) }}>Reset</button>
+          <button className={styles.resetBtn} onClick={() => { setColWidths([33,34,33]); setHiddenPanels([]); setRowHeights({ 1:[30,20,50], 2:[50,50] }) }}>Reset</button>
         </div>
       )}
 
       <div className={styles.grid} ref={gridRef}>
-        {/* COL 0 */}
+        {/* COL 0 — Tasks */}
         <div className={styles.col} style={{width:`${colWidths[0]}%`}}>
           {!hiddenPanels.includes('tasks') && (
             <div className={`${styles.panel} ${styles.scrollPanel} fu`}>
@@ -228,12 +283,12 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className={styles.divider} onMouseDown={e => startDrag(0, e)} />
+        <ColDivider onMouseDown={e => startColDrag(0, e)} />
 
-        {/* COL 1 */}
+        {/* COL 1 — Today / Habits / Notes */}
         <div className={styles.col} style={{width:`${colWidths[1]}%`}}>
           {!hiddenPanels.includes('today') && (
-            <div className={`${styles.panel} fu1`}>
+            <div className={styles.panel} style={{flex: rh1[0]}}>
               <div className={styles.panelHead}>
                 <span className={styles.panelTitle}>▦ Today</span>
                 <button className={styles.panelLink} onClick={() => setActiveTab('calendar')}>Calendar →</button>
@@ -252,8 +307,11 @@ export default function Dashboard() {
               })}
             </div>
           )}
+          {!hiddenPanels.includes('today') && !hiddenPanels.includes('habits') && (
+            <RowDivider onMouseDown={e => startRowDrag(1, 0, e)} />
+          )}
           {!hiddenPanels.includes('habits') && (
-            <div className={`${styles.panel} fu2`}>
+            <div className={styles.panel} style={{flex: rh1[1]}}>
               <div className={styles.panelHead}>
                 <span className={styles.panelTitle}>◷ Habits</span>
                 <button className={styles.panelLink} onClick={() => setActiveTab('habits')}>All →</button>
@@ -268,8 +326,11 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+          {!hiddenPanels.includes('habits') && !hiddenPanels.includes('notes') && (
+            <RowDivider onMouseDown={e => startRowDrag(1, 1, e)} />
+          )}
           {!hiddenPanels.includes('notes') && (
-            <div className={`${styles.panel} ${styles.flexPanel} fu3`}>
+            <div className={styles.panel} style={{flex: rh1[2]}}>
               <div className={styles.panelHead}>
                 <span className={styles.panelTitle}>≡ Note</span>
                 <button className={styles.panelLink} onClick={() => setActiveTab('notes')}>Notes →</button>
@@ -280,12 +341,12 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className={styles.divider} onMouseDown={e => startDrag(1, e)} />
+        <ColDivider onMouseDown={e => startColDrag(1, e)} />
 
-        {/* COL 2 */}
+        {/* COL 2 — Email / AI */}
         <div className={styles.col} style={{width:`${colWidths[2]}%`}}>
           {!hiddenPanels.includes('email') && (
-            <div className={`${styles.panel} fu4`}>
+            <div className={styles.panel} style={{flex: rh2[0]}}>
               <div className={styles.panelHead}>
                 <span className={styles.panelTitle}>✉ Inbox</span>
                 <button className={styles.panelLink} onClick={() => setActiveTab('email')}>Open →</button>
@@ -302,8 +363,11 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+          {!hiddenPanels.includes('email') && !hiddenPanels.includes('ai') && (
+            <RowDivider onMouseDown={e => startRowDrag(2, 0, e)} />
+          )}
           {!hiddenPanels.includes('ai') && (
-            <div className={`${styles.panel} ${styles.flexPanel} fu5`}>
+            <div className={styles.panel} style={{flex: rh2[1]}}>
               <div className={styles.panelHead}>
                 <span className={styles.panelTitle}>✦ AI</span>
                 <button className={styles.panelLink} onClick={() => setActiveTab('ai')}>Full →</button>

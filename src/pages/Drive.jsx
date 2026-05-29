@@ -2,27 +2,23 @@ import { useEffect, useState, useRef } from 'react'
 import { useGoogle } from '../context/GoogleContext'
 import styles from './Drive.module.css'
 
-const FOLDERS = [
-  { name: 'Work', icon: '💼', query: 'Work' },
-  { name: 'School', icon: '🎓', query: 'School' },
-  { name: 'Game Dev', icon: '🎮', query: 'Unity' },
-  { name: 'Archive', icon: '📦', query: 'Archive' },
-]
-
 const MIME_ICONS = {
   'application/vnd.google-apps.document': '📄',
   'application/vnd.google-apps.spreadsheet': '📊',
   'application/vnd.google-apps.presentation': '📋',
   'application/vnd.google-apps.folder': '📁',
   'application/pdf': '📕',
-  'image/jpeg': '🖼',
-  'image/png': '🖼',
-  'image/gif': '🖼',
+  'image/jpeg': '🖼', 'image/png': '🖼', 'image/gif': '🖼', 'image/webp': '🖼',
   'text/plain': '📝',
 }
+const PREVIEWABLE_IMAGE = ['image/jpeg','image/png','image/gif','image/webp']
 
-const PREVIEWABLE = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp']
-
+function fileIcon(mime) { return MIME_ICONS[mime] || '📄' }
+function isFolder(f) { return f.mimeType === 'application/vnd.google-apps.folder' }
+function isSystem(f) {
+  const skip = ['.sqlite','.wal','.shm','.db','.tmp','Thumbs.db','.DS_Store','.localized']
+  return skip.some(s => f.name.toLowerCase().endsWith(s))
+}
 function timeAgo(str) {
   if (!str) return ''
   const d = new Date(str), now = new Date()
@@ -30,54 +26,58 @@ function timeAgo(str) {
   if (diff === 0) return 'Today'
   if (diff === 1) return 'Yesterday'
   if (diff < 7) return `${diff}d ago`
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-}
-
-function fileIcon(mime) {
-  return MIME_ICONS[mime] || '📄'
-}
-
-// Filter out system/cache files
-function isRealFile(f) {
-  const skip = ['.sqlite', '.wal', '.shm', '.db', '.tmp', 'Thumbs.db', '.DS_Store']
-  return !skip.some(s => f.name.toLowerCase().includes(s.toLowerCase()))
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})
 }
 
 export default function Drive() {
   const { token, gFetch, login } = useGoogle()
+  const [rootFolders, setRootFolders] = useState([])
+  const [currentFolder, setCurrentFolder] = useState(null) // null = My Drive root
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [search, setSearch] = useState('')
   const [preview, setPreview] = useState(null)
-  const [activeFolder, setActiveFolder] = useState('Recent')
+  const [breadcrumbs, setBreadcrumbs] = useState([])
   const fileRef = useRef()
 
-  const loadFiles = (folder = 'Recent') => {
+  // Load root folders
+  useEffect(() => {
     if (!token) return
+    gFetch(`https://www.googleapis.com/drive/v3/files?q='root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&orderBy=name&fields=files(id,name,mimeType)`)
+      .then(data => setRootFolders(data?.files || []))
+      .catch(() => {})
+  }, [token])
+
+  // Load folder contents
+  const loadFolder = (folderId, folderName, newBreadcrumbs) => {
+    if (!token) return
+    setCurrentFolder(folderId)
+    setBreadcrumbs(newBreadcrumbs || [])
+    setSearch('')
     setLoading(true)
-    let url = 'https://www.googleapis.com/drive/v3/files?pageSize=30&fields=files(id,name,mimeType,modifiedTime,webViewLink,thumbnailLink,size)'
-    if (folder === 'Recent') {
-      url += '&orderBy=viewedByMeTime desc'
-    } else {
-      const q = FOLDERS.find(f => f.name === folder)?.query || folder
-      url += `&orderBy=modifiedTime desc&q=name contains '${q}'`
-    }
-    gFetch(url).then(data => {
-      const filtered = (data?.files || []).filter(isRealFile)
-      setFiles(filtered)
-      setLoading(false)
-    })
+    const parentId = folderId || 'root'
+    gFetch(`https://www.googleapis.com/drive/v3/files?q='${parentId}' in parents and trashed=false&orderBy=folder,name&fields=files(id,name,mimeType,modifiedTime,webViewLink,size)&pageSize=50`)
+      .then(data => {
+        setFiles((data?.files || []).filter(f => !isSystem(f)))
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }
 
-  useEffect(() => { if (token) loadFiles(activeFolder) }, [token, activeFolder])
+  useEffect(() => {
+    if (token) loadFolder(null, 'My Drive', [])
+  }, [token])
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file || !token) return
     setUploading(true)
     try {
-      const metadata = { name: file.name }
+      const metadata = {
+        name: file.name,
+        ...(currentFolder ? { parents: [currentFolder] } : {})
+      }
       const form = new FormData()
       form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
       form.append('file', file)
@@ -86,21 +86,36 @@ export default function Drive() {
         headers: { Authorization: `Bearer ${token}` },
         body: form
       })
-      if (res.ok) loadFiles(activeFolder)
+      if (res.ok) loadFolder(currentFolder, null, breadcrumbs)
     } catch(err) { console.error(err) }
     setUploading(false)
     e.target.value = ''
   }
 
   const handleFileClick = (f) => {
-    if (PREVIEWABLE.includes(f.mimeType)) {
+    if (isFolder(f)) {
+      const newCrumbs = [...breadcrumbs, { id: currentFolder, name: breadcrumbs.length === 0 ? 'My Drive' : breadcrumbs[breadcrumbs.length-1]?.name }]
+      loadFolder(f.id, f.name, newCrumbs)
+    } else if (PREVIEWABLE_IMAGE.includes(f.mimeType)) {
+      setPreview(f)
+    } else if (f.mimeType === 'application/pdf') {
       setPreview(f)
     } else {
       window.open(f.webViewLink, '_blank')
     }
   }
 
+  const goToBreadcrumb = (idx) => {
+    if (idx < 0) {
+      loadFolder(null, 'My Drive', [])
+    } else {
+      const crumb = breadcrumbs[idx]
+      loadFolder(crumb.id, crumb.name, breadcrumbs.slice(0, idx))
+    }
+  }
+
   const filtered = files.filter(f => f.name.toLowerCase().includes(search.toLowerCase()))
+  const currentName = breadcrumbs.length > 0 ? breadcrumbs[breadcrumbs.length-1]?.name : 'My Drive'
 
   return (
     <div className={styles.wrap}>
@@ -114,13 +129,15 @@ export default function Drive() {
       <div className={styles.layout}>
         <div className={styles.sidebar}>
           <div className={styles.sidebarHead}>My Drive</div>
-          {['Recent', ...FOLDERS.map(f => f.name)].map(name => (
-            <button key={name}
-              className={`${styles.folderBtn} ${activeFolder === name ? styles.folderActive : ''}`}
-              onClick={() => { setActiveFolder(name); setSearch('') }}
-            >
-              {name === 'Recent' ? '🕐' : FOLDERS.find(f=>f.name===name)?.icon} {name}
-            </button>
+          <button
+            className={`${styles.folderBtn} ${!currentFolder && breadcrumbs.length === 0 ? styles.folderActive : ''}`}
+            onClick={() => loadFolder(null, 'My Drive', [])}
+          >📁 All files</button>
+          {rootFolders.map(f => (
+            <button key={f.id}
+              className={`${styles.folderBtn} ${currentFolder === f.id ? styles.folderActive : ''}`}
+              onClick={() => loadFolder(f.id, f.name, [{ id: null, name: 'My Drive' }])}
+            >📁 {f.name}</button>
           ))}
           <div className={styles.sidebarDivider} />
           {token && (
@@ -128,32 +145,45 @@ export default function Drive() {
               <button className={styles.uploadBtn} onClick={() => fileRef.current?.click()} disabled={uploading}>
                 {uploading ? '⟳ Uploading…' : '↑ Upload file'}
               </button>
-              <input ref={fileRef} type="file" style={{ display: 'none' }} onChange={handleUpload} />
+              <input ref={fileRef} type="file" style={{display:'none'}} onChange={handleUpload} />
             </>
           )}
         </div>
 
         <div className={styles.main}>
           <div className={styles.toolbar}>
-            <input className={styles.search} placeholder="Search files…" value={search}
+            <div className={styles.breadcrumb}>
+              <button className={styles.crumbBtn} onClick={() => goToBreadcrumb(-1)}>My Drive</button>
+              {breadcrumbs.slice(1).map((c, i) => (
+                <span key={i}>
+                  <span className={styles.crumbSep}>/</span>
+                  <button className={styles.crumbBtn} onClick={() => goToBreadcrumb(i+1)}>{c.name}</button>
+                </span>
+              ))}
+              {currentFolder && (
+                <span>
+                  <span className={styles.crumbSep}>/</span>
+                  <span className={styles.crumbCurrent}>{files.length > 0 ? '' : '…'}</span>
+                </span>
+              )}
+            </div>
+            <input className={styles.search} placeholder="Search…" value={search}
               onChange={e => setSearch(e.target.value)} />
           </div>
-
-          {loading && <p className={styles.loading}>Loading…</p>}
 
           <div className={styles.fileList}>
             <div className={styles.fileHeader}>
               <span>Name</span>
               <span>Modified</span>
             </div>
-            {filtered.length === 0 && !loading && (
-              <p className={styles.empty}>No files found</p>
-            )}
+            {loading && <p className={styles.loading}>Loading…</p>}
+            {!loading && filtered.length === 0 && <p className={styles.empty}>No files</p>}
             {filtered.map(f => (
-              <div key={f.id} className={styles.file} onClick={() => handleFileClick(f)}>
+              <div key={f.id} className={`${styles.file} ${isFolder(f) ? styles.folderFile : ''}`}
+                onClick={() => handleFileClick(f)}>
                 <span className={styles.fileIcon}>{fileIcon(f.mimeType)}</span>
                 <span className={styles.fileName}>{f.name}</span>
-                <span className={styles.fileDate}>{timeAgo(f.modifiedTime)}</span>
+                <span className={styles.fileDate}>{isFolder(f) ? '—' : timeAgo(f.modifiedTime)}</span>
               </div>
             ))}
           </div>
@@ -164,24 +194,17 @@ export default function Drive() {
             <div className={styles.previewHead}>
               <span className={styles.previewName}>{preview.name}</span>
               <div className={styles.previewActions}>
-                <a href={preview.webViewLink} target="_blank" rel="noreferrer" className={styles.openBtn}>Open in Drive ↗</a>
+                <a href={preview.webViewLink} target="_blank" rel="noreferrer" className={styles.openBtn}>Open ↗</a>
                 <button className={styles.closeBtn} onClick={() => setPreview(null)}>✕</button>
               </div>
             </div>
             <div className={styles.previewBody}>
-              {preview.mimeType.startsWith('image/') ? (
-                <img src={`https://drive.google.com/thumbnail?id=${preview.id}&sz=w800`} alt={preview.name} className={styles.previewImg} />
-              ) : preview.mimeType === 'application/pdf' ? (
-                <iframe
-                  src={`https://drive.google.com/file/d/${preview.id}/preview`}
-                  className={styles.previewFrame}
-                  title={preview.name}
-                />
+              {PREVIEWABLE_IMAGE.includes(preview.mimeType) ? (
+                <img src={`https://drive.google.com/thumbnail?id=${preview.id}&sz=w800`}
+                  alt={preview.name} className={styles.previewImg} />
               ) : (
-                <div className={styles.previewFallback}>
-                  <p>Preview not available</p>
-                  <a href={preview.webViewLink} target="_blank" rel="noreferrer" className={styles.openBtn}>Open in Google Drive ↗</a>
-                </div>
+                <iframe src={`https://drive.google.com/file/d/${preview.id}/preview`}
+                  className={styles.previewFrame} title={preview.name} />
               )}
             </div>
           </div>
