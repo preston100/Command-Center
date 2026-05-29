@@ -1,0 +1,24 @@
+.wrap { padding: 14px; }
+.grid { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+
+.lesson { padding: 7px 0; border-bottom: 1px solid var(--border); }
+.lesson:last-child { border-bottom: none; }
+.lessonRow { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 3px; }
+.topic { font-size: 13px; color: var(--text); font-weight: 500; }
+.status { font-size: 11px; flex-shrink: 0; }
+.meta { font-size: 11px; color: var(--text-3); display: flex; gap: 6px; }
+
+.green { color: var(--green); }
+.amber { color: var(--amber); }
+.text3 { color: var(--text-3); }
+.blue  { color: var(--blue); }
+
+.group { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.group:last-child { border-bottom: none; }
+.groupDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: currentColor; }
+.groupName { font-size: 13px; color: var(--text); font-weight: 500; }
+.groupMeta { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+
+@media (max-width: 600px) {
+  .grid { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,24 @@
+.card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px 0; flex-shrink: 0;
+}
+.title {
+  font-size: 10px; font-weight: 500; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  display: flex; align-items: center; gap: 5px;
+}
+.action {
+  font-size: 11px; color: var(--accent); padding: 0;
+  transition: opacity 0.15s;
+}
+.action:hover { opacity: 0.7; }
+.body { padding: 8px 12px 12px; flex: 1; overflow: hidden; }
+.scrollBody { padding: 8px 12px 12px; flex: 1; overflow-y: auto; }

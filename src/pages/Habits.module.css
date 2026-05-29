@@ -1,0 +1,41 @@
+.page { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.header { }
+.title { font-size: 16px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.sub { font-size: 12px; color: var(--text-3); }
+
+.grid {
+  display: grid;
+  grid-template-columns: 100px repeat(7, 1fr);
+  gap: 4px; align-items: center;
+}
+.colLabel { }
+.dayHead {
+  display: flex; flex-direction: column; align-items: center;
+  font-size: 10px; color: var(--text-3); gap: 2px; padding: 4px 0;
+}
+.dayHead.today { color: var(--accent); }
+.dayNum { font-size: 12px; font-weight: 500; }
+.today .dayNum { color: var(--accent); }
+
+.habitLabel {
+  font-size: 12px; color: var(--text-2);
+  display: flex; align-items: center; gap: 6px; padding: 4px 0;
+}
+.cell {
+  height: 28px; border-radius: var(--radius);
+  background: var(--bg-3); border: 1px solid var(--border);
+  font-size: 11px; color: transparent;
+  transition: all 0.15s;
+}
+.todayCell:hover { border-color: var(--border-2); }
+.done { background: var(--green-2); border-color: rgba(82,180,116,0.25); color: var(--green); }
+
+.streakRow { display: flex; gap: 8px; flex-wrap: wrap; }
+.streakCard {
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 10px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 80px;
+}
+.streakNum { font-size: 22px; font-weight: 500; color: var(--accent); font-family: var(--mono); }
+.streakLabel { font-size: 11px; color: var(--text); }
+.streakSub { font-size: 10px; color: var(--text-3); }
